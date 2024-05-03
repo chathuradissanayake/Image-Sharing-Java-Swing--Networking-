@@ -17,6 +17,7 @@ public class Server {
         JLabel jLabelText = new JLabel("Waiting for Image client..");
         jFrame.add(jLabelText, BorderLayout.SOUTH);
         jFrame.setVisible(true);
+
         ServerSocket serverSocket = new ServerSocket(1234);
         Socket socket = serverSocket.accept();
         InputStream inputStream = socket.getInputStream();
@@ -26,8 +27,20 @@ public class Server {
         bufferedInputStream.close();
         socket.close();
 
-        JLabel jLabelPic = new JLabel(new ImageIcon(bufferedImage));
+        // Calculate new dimensions to maintain aspect ratio
+        int newWidth = 200;
+        int originalWidth = bufferedImage.getWidth();
+        int originalHeight = bufferedImage.getHeight();
+        int newHeight = (int) ((double) newWidth / originalWidth * originalHeight);
+
+        // Resize the image
+        Image scaledImage = bufferedImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+        ImageIcon imageIcon = new ImageIcon(scaledImage);
+
+        JLabel jLabelPic = new JLabel(imageIcon);
         jLabelText.setText("Image received..!");
         jFrame.add(jLabelPic, BorderLayout.CENTER);
+        jFrame.revalidate();
+        jFrame.repaint();
     }
 }

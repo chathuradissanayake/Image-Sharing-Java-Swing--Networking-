@@ -1,10 +1,12 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -18,37 +20,65 @@ public class Client {
         jFrame.setSize(400, 400);
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        ImageIcon imageIcon = new ImageIcon("E:\\Self Study\\Image Sharing - Networking\\Images\\Teddy-Bear.jpg");
-
-        JLabel jLabelPic = new JLabel(imageIcon);
+        JLabel jLabelPic = new JLabel();
         JButton jButton = new JButton("Send Image to Server");
 
+        jFrame.setLayout(new FlowLayout());
         jFrame.add(jLabelPic);
         jFrame.add(jButton);
 
         jFrame.setVisible(true);
+
         jButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent event){
-                try {
-                    OutputStream outputStream = socket.getOutputStream();
-                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+            public void actionPerformed(ActionEvent event) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Choose Image");
 
-                    Image image = imageIcon.getImage();
-                    BufferedImage bufferedImage = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_RGB);
+                // Set file filter for JPEG and PNG images
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("Image files", "jpg", "jpeg", "png");
+                fileChooser.setFileFilter(filter);
 
-                    Graphics graphics = bufferedImage.createGraphics();
-                    graphics.drawImage(image, 0, 0, null);
-                    graphics.dispose();
+                int userSelection = fileChooser.showOpenDialog(jFrame);
 
-                    ImageIO.write(bufferedImage, "jpg",bufferedOutputStream);
-                    bufferedOutputStream.close();
-                    socket.close();
-                }
-                catch (IOException e){
-                    e.printStackTrace();
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    try {
+                        BufferedImage bufferedImage = ImageIO.read(selectedFile);
+
+                        int newWidth = 200;
+                        int originalWidth = bufferedImage.getWidth();
+                        int originalHeight = bufferedImage.getHeight();
+                        int newHeight = (int) ((double) newWidth / originalWidth * originalHeight);
+
+                        // Resize the image
+                        Image scaledImage = bufferedImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+                        ImageIcon imageIcon = new ImageIcon(scaledImage);
+                        jLabelPic.setIcon(imageIcon);
+
+                        OutputStream outputStream = socket.getOutputStream();
+                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+
+                        // Write image to output stream based on file extension
+                        String extension = getFileExtension(selectedFile.getName());
+                        ImageIO.write(bufferedImage, extension, bufferedOutputStream);
+
+                        bufferedOutputStream.close();
+                        socket.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
+        });
+    }
+
+    // Method to get file extension
+    private static String getFileExtension(String fileName) {
+        int index = fileName.lastIndexOf('.');
+        if (index > 0 && index < fileName.length() - 1) {
+            return fileName.substring(index + 1).toLowerCase();
         }
-        );
+        return "";
     }
 }
